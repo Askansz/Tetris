@@ -27,6 +27,15 @@
     #score {
       font-family: 'Press Start 2P', cursive; /* Change the font for the score text */
     }
+
+    /* Style for the copyright and version text */
+    #footer {
+      position: absolute;
+      bottom: 10px;
+      text-align: center;
+      font-size: 12px;
+      font-family: 'Press Start 2P', cursive;
+    }
   </style>
   <!-- Include the Press Start 2P font -->
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -34,6 +43,7 @@
 <body>
 <div>Score: <span id="score">0</span></div>
 <canvas width="320" height="640" id="game"></canvas>
+<div id="footer">&copy; Teknik AB 2024 | Version 1.0 Beta</div>
 <script>
 // https://tetris.fandom.com/wiki/Tetris_Guideline
 
