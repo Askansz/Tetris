@@ -150,6 +150,10 @@ function placeTetromino() {
           playfield[r][c] = playfield[r-1][c];
         }
       }
+
+      // Increment score based on the number of lines cleared
+      score += lineScores[playfield.length - row - 1];
+      document.getElementById('score').textContent = score;
     }
     else {
       row--;
@@ -164,16 +168,14 @@ function showGameOver() {
   cancelAnimationFrame(rAF);
   gameOver = true;
 
-  context.fillStyle = 'black';
-  context.globalAlpha = 0.75;
-  context.fillRect(0, canvas.height / 2 - 30, canvas.width, 60);
+  // Save score to local storage
+  const highScores = JSON.parse(localStorage.getItem('tetrisHighScores')) || [];
+  highScores.push(score);
+  highScores.sort((a, b) => b - a); // Sort scores in descending order
+  localStorage.setItem('tetrisHighScores', JSON.stringify(highScores));
 
-  context.globalAlpha = 1;
-  context.fillStyle = 'white';
-  context.font = '36px monospace';
-  context.textAlign = 'center';
-  context.textBaseline = 'middle';
-  context.fillText('GAME OVER!', canvas.width / 2, canvas.height / 2);
+  const highScoresText = highScores.length > 0 ? 'High Scores:\n' + highScores.join('\n') : 'No high scores yet!';
+  alert(highScoresText);
 }
 
 const canvas = document.getElementById('game');
@@ -309,22 +311,15 @@ document.addEventListener('keydown', function(e) {
   if (gameOver) return;
 
   // Left and right arrow keys (move)
-  if (e.which === 37 || e.which === 39) {
-    const col = e.which === 37
-      ? tetromino.col - 1
-      : tetromino.col + 1;
-
-    if (isValidMove(tetromino.matrix, tetromino.row, col)) {
-      tetromino.col = col;
-    }
+  if (e.which === 37) {
+    moveTetrominoLeft();
+  } else if (e.which === 39) {
+    moveTetrominoRight();
   }
 
   // Up arrow key (rotate)
   if (e.which === 38) {
-    const matrix = rotate(tetromino.matrix);
-    if (isValidMove(matrix, tetromino.row, tetromino.col)) {
-      tetromino.matrix = matrix;
-    }
+    rotateTetromino();
   }
 
   // Down arrow key (drop)
