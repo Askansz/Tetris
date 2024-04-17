@@ -4,29 +4,32 @@
   <title>Basic Tetris HTML Game</title>
   <meta charset="UTF-8">
   <style>
-  html, body {
-    height: 100%;
-    margin: 0;
-  }
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
 
-  body {
-    background: black;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column; /* Added to center the score */
-    color: white; /* Added to change text color */
-    font-family: Montserrat, sans-serif; /* Added to change font */
-  }
+    body {
+      background: black;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
 
-  canvas {
-    border: 1px solid white;
-  }
+    canvas {
+      border: 1px solid white;
+    }
 
-  #score {
-    font-family: Montserrat, sans-serif;
-  }
+    /* Style for the score element */
+    #score {
+      font-family: 'Press Start 2P', cursive;
+    }
   </style>
+  <!-- Include the Press Start 2P font -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
 <div>Score: <span id="score">0</span></div>
