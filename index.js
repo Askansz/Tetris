@@ -47,6 +47,19 @@ document.addEventListener('touchstart', handleTouchStart, false);
 document.addEventListener('touchmove', handleTouchMove, false);
 document.addEventListener('touchend', handleTouchEnd, false);
 
+// Load the high score from local storage or set it to 0 if it doesn't exist
+let highScore = localStorage.getItem('highScore') ? parseInt(localStorage.getItem('highScore')) : 0;
+
+// Function to update and display the high score
+function updateHighScore() {
+  document.getElementById('highScore').textContent = highScore;
+}
+
+// Function to save the high score to local storage
+function saveHighScore() {
+  localStorage.setItem('highScore', highScore.toString());
+}
+
 // https://tetris.fandom.com/wiki/Tetris_Guideline
 
 // get a random integer between the range of [min,max]
@@ -141,25 +154,33 @@ function placeTetromino() {
   }
 
   // check for line clears starting from the bottom and working our way up
+  let linesCleared = 0;
   for (let row = playfield.length - 1; row >= 0; ) {
     if (playfield[row].every(cell => !!cell)) {
-
-      // drop every row above this one
+      linesCleared++;
+      score += lineScores[linesCleared]; // Increment score based on lines cleared
+      
+      // Drop every row above this one
       for (let r = row; r >= 0; r--) {
         for (let c = 0; c < playfield[r].length; c++) {
           playfield[r][c] = playfield[r-1][c];
         }
       }
-
-      // Increment score based on the number of lines cleared
-      score += lineScores[playfield.length - row - 1];
-      document.getElementById('score').textContent = score;
     }
     else {
       row--;
     }
   }
 
+  // Update high score if current score is greater
+  if (score > highScore) {
+    highScore = score;
+    saveHighScore();
+  }
+
+  // Update high score display
+  updateHighScore();
+  
   tetromino = getNextTetromino();
 }
 
@@ -168,14 +189,19 @@ function showGameOver() {
   cancelAnimationFrame(rAF);
   gameOver = true;
 
-  // Save score to local storage
-  const highScores = JSON.parse(localStorage.getItem('tetrisHighScores')) || [];
-  highScores.push(score);
-  highScores.sort((a, b) => b - a); // Sort scores in descending order
-  localStorage.setItem('tetrisHighScores', JSON.stringify(highScores));
+  context.fillStyle = 'black';
+  context.globalAlpha = 0.75;
+  context.fillRect(0, canvas.height / 2 - 30, canvas.width, 60);
 
-  const highScoresText = highScores.length > 0 ? 'High Scores:\n' + highScores.join('\n') : 'No high scores yet!';
-  alert(highScoresText);
+  context.globalAlpha = 1;
+  context.fillStyle = 'white';
+  context.font = '36px monospace';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillText('GAME OVER!', canvas.width / 2, canvas.height / 2);
+  
+  // Display high score
+  context.fillText('High Score: ' + highScore, canvas.width / 2, canvas.height / 2 + 50);
 }
 
 const canvas = document.getElementById('game');
@@ -311,15 +337,22 @@ document.addEventListener('keydown', function(e) {
   if (gameOver) return;
 
   // Left and right arrow keys (move)
-  if (e.which === 37) {
-    moveTetrominoLeft();
-  } else if (e.which === 39) {
-    moveTetrominoRight();
+  if (e.which === 37 || e.which === 39) {
+    const col = e.which === 37
+      ? tetromino.col - 1
+      : tetromino.col + 1;
+
+    if (isValidMove(tetromino.matrix, tetromino.row, col)) {
+      tetromino.col = col;
+    }
   }
 
   // Up arrow key (rotate)
   if (e.which === 38) {
-    rotateTetromino();
+    const matrix = rotate(tetromino.matrix);
+    if (isValidMove(matrix, tetromino.row, tetromino.col)) {
+      tetromino.matrix = matrix;
+    }
   }
 
   // Down arrow key (drop)
