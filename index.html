@@ -14,6 +14,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-direction: column; /* Added to center the score */
+    color: white; /* Added to change text color */
+    font-family: Arial, sans-serif; /* Added to change font */
   }
 
   canvas {
@@ -22,6 +25,7 @@
   </style>
 </head>
 <body>
+<div>Score: <span id="score">0</span></div>
 <canvas width="320" height="640" id="game"></canvas>
 <script>
 // https://tetris.fandom.com/wiki/Tetris_Guideline
@@ -103,35 +107,40 @@ function isValidMove(matrix, cellRow, cellCol) {
 
 // place the tetromino on the playfield
 function placeTetromino() {
-  for (let row = 0; row < tetromino.matrix.length; row++) {
-    for (let col = 0; col < tetromino.matrix[row].length; col++) {
-      if (tetromino.matrix[row][col]) {
+  let linesCleared = 0; // Track how many lines are cleared
 
-        // game over if piece has any part offscreen
-        if (tetromino.row + row < 0) {
+  for (let row = tetromino.row; row < tetromino.row + tetromino.matrix.length; row++) {
+    for (let col = 0; col < tetromino.matrix[row - tetromino.row].length; col++) {
+      if (tetromino.matrix[row - tetromino.row][col]) {
+        // Game over if piece has any part offscreen
+        if (row < 0) {
           return showGameOver();
         }
-
-        playfield[tetromino.row + row][tetromino.col + col] = tetromino.name;
+        playfield[row][tetromino.col + col] = tetromino.name;
       }
     }
   }
 
-  // check for line clears starting from the bottom and working our way up
+  // Check for line clears starting from the bottom and working our way up
   for (let row = playfield.length - 1; row >= 0; ) {
     if (playfield[row].every(cell => !!cell)) {
-
-      // drop every row above this one
+      // Drop every row above this one
       for (let r = row; r >= 0; r--) {
         for (let c = 0; c < playfield[r].length; c++) {
           playfield[r][c] = playfield[r-1][c];
         }
       }
+      linesCleared++; // Increment lines cleared
+      continue; // Check the same row again as it shifted down
     }
-    else {
-      row--;
-    }
+    row--;
   }
+
+  // Update the score based on lines cleared
+  score += lineScores[linesCleared];
+
+  // Update the DOM to display the score
+  document.getElementById('score').innerText = score;
 
   tetromino = getNextTetromino();
 }
@@ -158,11 +167,11 @@ const context = canvas.getContext('2d');
 const grid = 32;
 const tetrominoSequence = [];
 
-// keep track of what is in every cell of the game using a 2d array
-// tetris playfield is 10x20, with a few rows offscreen
+// Keep track of what is in every cell of the game using a 2d array
+// Tetris playfield is 10x20, with a few rows offscreen
 const playfield = [];
 
-// populate the empty state
+// Populate the empty state
 for (let row = -2; row < 20; row++) {
   playfield[row] = [];
 
@@ -171,8 +180,7 @@ for (let row = -2; row < 20; row++) {
   }
 }
 
-// how to draw each tetromino
-// @see https://tetris.fandom.com/wiki/SRS
+// How to draw each tetromino
 const tetrominos = {
   'I': [
     [0,0,0,0],
@@ -211,7 +219,7 @@ const tetrominos = {
   ]
 };
 
-// color of each tetromino
+// Color of each tetromino
 const colors = {
   'I': 'cyan',
   'O': 'yellow',
@@ -222,38 +230,42 @@ const colors = {
   'L': 'orange'
 };
 
+// Scoring rules (for example)
+const lineScores = [0, 40, 100, 300, 1200]; // Points for 0, 1, 2, 3, 4 lines cleared
+
 let count = 0;
 let tetromino = getNextTetromino();
-let rAF = null;  // keep track of the animation frame so we can cancel it
+let rAF = null;  // Keep track of the animation frame so we can cancel it
 let gameOver = false;
+let score = 0; // Initialize the score variable
 
-// game loop
+// Game loop
 function loop() {
   rAF = requestAnimationFrame(loop);
   context.clearRect(0,0,canvas.width,canvas.height);
 
-  // draw the playfield
+  // Draw the playfield
   for (let row = 0; row < 20; row++) {
     for (let col = 0; col < 10; col++) {
       if (playfield[row][col]) {
         const name = playfield[row][col];
         context.fillStyle = colors[name];
 
-        // drawing 1 px smaller than the grid creates a grid effect
+        // Drawing 1 px smaller than the grid creates a grid effect
         context.fillRect(col * grid, row * grid, grid-1, grid-1);
       }
     }
   }
 
-  // draw the active tetromino
+  // Draw the active tetromino
   if (tetromino) {
 
-    // tetromino falls every 35 frames
+    // Tetromino falls every 35 frames
     if (++count > 35) {
       tetromino.row++;
       count = 0;
 
-      // place piece if it runs into anything
+      // Place piece if it runs into anything
       if (!isValidMove(tetromino.matrix, tetromino.row, tetromino.col)) {
         tetromino.row--;
         placeTetromino();
@@ -266,7 +278,7 @@ function loop() {
       for (let col = 0; col < tetromino.matrix[row].length; col++) {
         if (tetromino.matrix[row][col]) {
 
-          // drawing 1 px smaller than the grid creates a grid effect
+          // Drawing 1 px smaller than the grid creates a grid effect
           context.fillRect((tetromino.col + col) * grid, (tetromino.row + row) * grid, grid-1, grid-1);
         }
       }
@@ -274,11 +286,11 @@ function loop() {
   }
 }
 
-// listen to keyboard events to move the active tetromino
+// Listen to keyboard events to move the active tetromino
 document.addEventListener('keydown', function(e) {
   if (gameOver) return;
 
-  // left and right arrow keys (move)
+  // Left and right arrow keys (move)
   if (e.which === 37 || e.which === 39) {
     const col = e.which === 37
       ? tetromino.col - 1
@@ -289,7 +301,7 @@ document.addEventListener('keydown', function(e) {
     }
   }
 
-  // up arrow key (rotate)
+  // Up arrow key (rotate)
   if (e.which === 38) {
     const matrix = rotate(tetromino.matrix);
     if (isValidMove(matrix, tetromino.row, tetromino.col)) {
@@ -297,7 +309,7 @@ document.addEventListener('keydown', function(e) {
     }
   }
 
-  // down arrow key (drop)
+  // Down arrow key (drop)
   if(e.which === 40) {
     const row = tetromino.row + 1;
 
@@ -312,7 +324,7 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-// start the game
+// Start the game
 rAF = requestAnimationFrame(loop);
 </script>
 </body>
