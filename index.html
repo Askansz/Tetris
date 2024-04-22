@@ -3,7 +3,6 @@
 <head>
   <title>Basic Tetris HTML Game</title>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Add viewport meta tag for responsive design -->
   <style>
     html, body {
       height: 100%;
@@ -17,17 +16,19 @@
       justify-content: center;
       flex-direction: column;
       color: white;
-      font-family: 'Press Start 2P', cursive;
+      font-family: 'Press Start 2P', cursive; /* Change the font for the entire document */
     }
 
     canvas {
       border: 1px solid white;
     }
 
+    /* Style for the score element */
     #score {
-      font-family: 'Press Start 2P', cursive;
+      font-family: 'Press Start 2P', cursive; /* Change the font for the score text */
     }
 
+    /* Style for the copyright and version text */
     #footer {
       position: absolute;
       bottom: 10px;
@@ -36,6 +37,7 @@
       font-family: 'Press Start 2P', cursive;
     }
   </style>
+  <!-- Include the Press Start 2P font -->
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -43,55 +45,6 @@
 <canvas width="320" height="640" id="game"></canvas>
 <div id="footer">&copy; Teknik AB 2024 | Version 1.0 Beta</div>
 <script>
-let touchStartX = null;
-let touchStartY = null;
-
-function handleTouchStart(event) {
-  if (gameOver) return;
-  
-  const touchX = event.touches[0].clientX;
-  const touchY = event.touches[0].clientY;
-  
-  // Calculate the difference between touch start and current touch position
-  touchStartX = touchX;
-  touchStartY = touchY;
-}
-
-function handleTouchMove(event) {
-  if (gameOver) return;
-  
-  const touchX = event.touches[0].clientX;
-  const touchY = event.touches[0].clientY;
-  
-  const deltaX = touchX - touchStartX;
-  const deltaY = touchY - touchStartY;
-  
-  // If horizontal swipe distance is greater than vertical, consider it a horizontal movement
-  if (Math.abs(deltaX) > Math.abs(deltaY)) {
-    if (deltaX > 10) { // Right swipe
-      moveTetrominoRight();
-    } else if (deltaX < -10) { // Left swipe
-      moveTetrominoLeft();
-    }
-  } else { // Vertical movement
-    if (deltaY > 10) { // Down swipe
-      dropTetromino();
-    } else if (deltaY < -10) { // Up swipe
-      rotateTetromino();
-    }
-  }
-}
-
-function handleTouchEnd(event) {
-  // Reset touch start coordinates
-  touchStartX = null;
-  touchStartY = null;
-}
-
-document.addEventListener('touchstart', handleTouchStart, false);
-document.addEventListener('touchmove', handleTouchMove, false);
-document.addEventListener('touchend', handleTouchEnd, false);
-
 // https://tetris.fandom.com/wiki/Tetris_Guideline
 
 // get a random integer between the range of [min,max]
@@ -171,35 +124,40 @@ function isValidMove(matrix, cellRow, cellCol) {
 
 // place the tetromino on the playfield
 function placeTetromino() {
-  for (let row = 0; row < tetromino.matrix.length; row++) {
-    for (let col = 0; col < tetromino.matrix[row].length; col++) {
-      if (tetromino.matrix[row][col]) {
+  let linesCleared = 0; // Track how many lines are cleared
 
-        // game over if piece has any part offscreen
-        if (tetromino.row + row < 0) {
+  for (let row = tetromino.row; row < tetromino.row + tetromino.matrix.length; row++) {
+    for (let col = 0; col < tetromino.matrix[row - tetromino.row].length; col++) {
+      if (tetromino.matrix[row - tetromino.row][col]) {
+        // Game over if piece has any part offscreen
+        if (row < 0) {
           return showGameOver();
         }
-
-        playfield[tetromino.row + row][tetromino.col + col] = tetromino.name;
+        playfield[row][tetromino.col + col] = tetromino.name;
       }
     }
   }
 
-  // check for line clears starting from the bottom and working our way up
+  // Check for line clears starting from the bottom and working our way up
   for (let row = playfield.length - 1; row >= 0; ) {
     if (playfield[row].every(cell => !!cell)) {
-
-      // drop every row above this one
+      // Drop every row above this one
       for (let r = row; r >= 0; r--) {
         for (let c = 0; c < playfield[r].length; c++) {
           playfield[r][c] = playfield[r-1][c];
         }
       }
+      linesCleared++; // Increment lines cleared
+      continue; // Check the same row again as it shifted down
     }
-    else {
-      row--;
-    }
+    row--;
   }
+
+  // Update the score based on lines cleared
+  score += lineScores[linesCleared];
+
+  // Update the DOM to display the score
+  document.getElementById('score').innerText = score;
 
   tetromino = getNextTetromino();
 }
@@ -226,11 +184,11 @@ const context = canvas.getContext('2d');
 const grid = 32;
 const tetrominoSequence = [];
 
-// keep track of what is in every cell of the game using a 2d array
-// tetris playfield is 10x20, with a few rows offscreen
+// Keep track of what is in every cell of the game using a 2d array
+// Tetris playfield is 10x20, with a few rows offscreen
 const playfield = [];
 
-// populate the empty state
+// Populate the empty state
 for (let row = -2; row < 20; row++) {
   playfield[row] = [];
 
@@ -239,8 +197,7 @@ for (let row = -2; row < 20; row++) {
   }
 }
 
-// how to draw each tetromino
-// @see https://tetris.fandom.com/wiki/SRS
+// How to draw each tetromino
 const tetrominos = {
   'I': [
     [0,0,0,0],
@@ -279,7 +236,7 @@ const tetrominos = {
   ]
 };
 
-// color of each tetromino
+// Color of each tetromino
 const colors = {
   'I': 'cyan',
   'O': 'yellow',
@@ -371,50 +328,21 @@ document.addEventListener('keydown', function(e) {
 
   // Down arrow key (drop)
   if(e.which === 40) {
-    dropTetromino();
+    const row = tetromino.row + 1;
+
+    if (!isValidMove(tetromino.matrix, row, tetromino.col)) {
+      tetromino.row = row - 1;
+
+      placeTetromino();
+      return;
+    }
+
+    tetromino.row = row;
   }
 });
 
-// Function to move the tetromino left
-function moveTetrominoLeft() {
-  const col = tetromino.col - 1;
-  if (isValidMove(tetromino.matrix, tetromino.row, col)) {
-    tetromino.col = col;
-  }
-}
-
-// Function to move the tetromino right
-function moveTetrominoRight() {
-  const col = tetromino.col + 1;
-  if (isValidMove(tetromino.matrix, tetromino.row, col)) {
-    tetromino.col = col;
-  }
-}
-
-// Function to drop the tetromino
-function dropTetromino() {
-  const row = tetromino.row + 1;
-
-  if (!isValidMove(tetromino.matrix, row, tetromino.col)) {
-    tetromino.row = row - 1;
-    placeTetromino();
-    return;
-  }
-
-  tetromino.row = row;
-}
-
-// Function to rotate the tetromino
-function rotateTetromino() {
-  const matrix = rotate(tetromino.matrix);
-  if (isValidMove(matrix, tetromino.row, tetromino.col)) {
-    tetromino.matrix = matrix;
-  }
-}
-
-// Start the game loop
+// Start the game
 rAF = requestAnimationFrame(loop);
-
 </script>
 </body>
 </html>
